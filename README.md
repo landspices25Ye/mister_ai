@@ -1,121 +1,199 @@
-# Mister AI
+# 🤖 Mister AI - المعلم الذكي
 
-مشروع ذكاء اصطناعي لتشغيل بوت Telegram تعليمي يدعم المنهج الدراسي ويعمل مع خدمات مثل PostgreSQL و Qdrant و Redis.
+> مساعد تعليمي افتراضي بالذكاء الاصطناعي لطلاب الثانوية في اليمن
+> مبني على **FastAPI + Telegram Bot + RAG + OpenAI**
 
-## المتطلبات
+[![Python 3.12](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.110.0-green.svg)](https://fastapi.tiangolo.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-- Git
-- Docker Desktop أو Docker Engine
-- Docker Compose
-- Python 3.10+ (اختياري للتطوير المحلي)
-- مفتاح OpenAI API
+---
 
-## العمل من GitHub على الجهاز المحلي
+## 📋 نظرة عامة
 
-### 1) استنساخ المشروع
+**مستر AI** هو بوت تعليمي ذكي يعمل على **Telegram** (وقريباً WhatsApp)، يقدم:
+- 🎓 دروساً في الرياضيات (الصف الثالث الثانوي - علمي)
+- 🤖 شروحات بأسلوب سقراطي (يوجّه الطالب للتفكير بدل الإجابة المباشرة)
+- 📝 تدريبات واختبارات تفاعلية
+- 📊 تتبّع تقدّم الطالب
+- 🔍 بحث ذكي في المنهج (RAG)
 
+---
+
+## 🏗️ البنية المعمارية
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  Telegram   │────▶│   FastAPI   │────▶│    OpenAI   │
+│    Bot      │     │     App     │     │     LLM     │
+└─────────────┘     └──────┬──────┘     └─────────────┘
+                           │
+                  ┌────────┴────────┐
+                  │                 │
+            ┌─────▼─────┐    ┌──────▼──────┐
+            │ PostgreSQL │    │   Qdrant    │
+            │ (Metadata) │    │ (Vectors)   │
+            └───────────┘    └─────────────┘
+                  │
+            ┌─────▼─────┐
+            │   Redis   │
+            │  (Cache)  │
+            └───────────┘
+```
+
+---
+
+## 📂 هيكل المشروع
+
+```
+mister_ai/
+├── bot/
+│   ├── main.py              # نقطة الدخول الرئيسية
+│   └── core/
+│       ├── llm_client.py    # عميل LLM (OpenAI)
+│       ├── rag.py           # Pipeline لاسترجاع الدروس
+│       └── student_manager.py # إدارة بيانات الطلاب
+├── curriculum/
+│   └── math-3sec/
+│       ├── ch01_derivatives/    # الفصل الأول (مكتمل)
+│       ├── ch02_applications/   # هيكل
+│       ├── ch03_integration/    # هيكل
+│       └── shared/questions_bank/
+├── prompts/
+│   └── system_prompt.md     # دليل المعلم (System Prompt)
+├── db/
+│   └── schema.sql           # مخطط قاعدة البيانات
+├── data/                    # ملفات مؤقتة
+├── scripts/                 # سكربتات مساعدة
+├── simulations/             # محاكاة المحادثات
+├── .env.example             # قالب متغيرات البيئة
+├── docker-compose.yml       # إعداد الحاويات
+├── Dockerfile               # بناء الصورة
+└── requirements.txt         # المكتبات المطلوبة
+```
+
+---
+
+## 🚀 البدء السريع
+
+### 1. المتطلبات
+- **Docker** >= 24.0
+- **Docker Compose** >= 2.20
+- **مفتاح OpenAI API** ([احصل عليه من هنا](https://platform.openai.com/api-keys))
+- **توكن Telegram Bot** ([أنشئ بوت من @BotFather](https://t.me/BotFather))
+
+### 2. الإعداد
 ```bash
-git clone https://github.com/LandSpices25Ye/mister_ai.git
+# استنساخ المستودع
+git clone https://github.com/landspices25Ye/mister_ai.git
 cd mister_ai
-```
 
-### 2) إعداد المتغيرات البيئية
-
-```bash
+# إنشاء ملف .env
 cp .env.example .env
-nano .env
+nano .env  # أضف المفاتيح الفعلية
 ```
 
-أدخل القيم المناسبة مثل:
-- `TELEGRAM_BOT_TOKEN`
-- `OPENAI_API_KEY`
-- `POSTGRES_USER` و `POSTGRES_PASSWORD`
-- `JWT_SECRET` و `SESSION_SECRET`
-
-### 3) تشغيل المشروع عبر Docker
-
+### 3. التشغيل
 ```bash
-docker compose up -d --build
-```
-
-إذا كان Docker Compose القديم يستخدم الأمر التالي:
-
-```bash
+# بناء وتشغيل الحاويات
 docker-compose up -d --build
+
+# عرض السجلات
+docker-compose logs -f app
+
+# فحص حالة الحاويات
+docker-compose ps
 ```
 
-### 4) فهرسة المنهج
-
-```bash
-docker compose exec app python scripts/ingest_curriculum.py
-```
-
-### 5) اختبار البوت
-
-أرسل رسالة إلى البوت على Telegram بعد أن يصبح التشغيل جاهزًا.
+### 4. التحقق
+- افتح `http://localhost:8000` للتحقق من أن FastAPI يعمل
+- افتح Telegram وتحدث مع البوت الخاص بك
 
 ---
 
-## التطوير المحلي
+## 🔧 متغيرات البيئة
 
-إذا أردت تشغيل المشروع مباشرة على الجهاز بدون Docker:
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-ثم شغّل التطبيق كما هو مناسب للملف الرئيسي في المشروع.
-
----
-
-## إدارة GitHub
-
-### إضافة Remote
-
-إذا لم يكن هناك Remote مضاف بعد:
-
-```bash
-git remote add origin https://github.com/<your-username>/mister_ai.git
-```
-
-### رفع التغييرات
-
-```bash
-git add .
-git commit -m "Describe your changes"
-git push -u origin main
-```
-
-### سحب التحديثات
-
-```bash
-git pull origin main
-```
+| المتغير | الوصف | القيمة الافتراضية |
+|---------|-------|-------------------|
+| `TELEGRAM_BOT_TOKEN` | توكن بوت Telegram | _(مطلوب)_ |
+| `OPENAI_API_KEY` | مفتاح OpenAI API | _(مطلوب)_ |
+| `OPENAI_MODEL` | نموذج LLM المستخدم | `gpt-4o-mini` |
+| `POSTGRES_USER` | اسم مستخدم PostgreSQL | `mister_ai_user` |
+| `POSTGRES_PASSWORD` | كلمة مرور PostgreSQL | _(مطلوب)_ |
+| `POSTGRES_DB` | اسم قاعدة البيانات | `mister_ai` |
+| `QDRANT_HOST` | اسم مضيف Qdrant | `qdrant` |
+| `REDIS_HOST` | اسم مضيف Redis | `redis` |
+| `SYSTEM_PROMPT_PATH` | مسار ملف System Prompt | `/app/prompts/system_prompt.md` |
 
 ---
 
-## هيكل المشروع
+## 📊 الخدمات
 
-- `bot/` — كود البوت الرئيسي وطبقات المنطق
-- `bot/core/` — وحدات RAG و LLM وإدارة الطلاب
-- `curriculum/` — المحتوى التعليمي والمنهج
-- `db/` — سكربتات قاعدة البيانات
-- `prompts/` — ملفات التوجيه الخاصة بالذكاء الاصطناعي
-- `scripts/` — أدوات مثل فهرسة المنهج
-- `docker-compose.yml` — إعدادات الخدمات
-- `Dockerfile` — بناء الصورة الخاصة بالتطبيق
+| الخدمة | المنفذ | الوصف |
+|--------|--------|-------|
+| `app` | 8000 | التطبيق الرئيسي (FastAPI + Telegram) |
+| `postgres` | 5432 | قاعدة البيانات الرئيسية |
+| `qdrant` | 6333 | قاعدة البيانات المتجهية (RAG) |
+| `redis` | 6379 | التخزين المؤقت |
+| `adminer` | 8080 | واجهة إدارة قاعدة البيانات |
 
 ---
 
-## ملاحظات مهمة
+## 🛠️ استكشاف الأخطاء وإصلاحها
 
-- لا تشارك ملف `.env` في GitHub.
-- تأكد من أن Docker يعمل قبل تشغيل المشروع.
-- إذا واجهت مشكلة في الحاويات، استخدم:
+### الحاوية `app` تشتغل وتغلق فوراً
+**السبب الشائع:** متغيرات البيئة غير معرّفة.
 
+**الحل:**
+1. تأكد من وجود ملف `.env` ومن صحة القيم
+2. تحقق من السجلات: `docker-compose logs app`
+3. تأكد من أن جميع المجلدات المطلوبة موجودة (مثل `prompts/`, `curriculum/`)
+
+### خطأ في الاتصال بـ Qdrant
+**الحل:** تأكد من أن خدمة `qdrant` تعمل:
 ```bash
-docker compose ps
-docker compose logs -f
+docker-compose ps qdrant
 ```
+
+### خطأ في الاتصال بـ PostgreSQL
+**الحل:** تحقق من أن خدمة `postgres` بدأت بنجاح ومن أن بيانات الاعتماد صحيحة.
+
+---
+
+## 📚 الوثائق الإضافية
+
+- 📖 [دليل المعلم (System Prompt)](prompts/system_prompt.md)
+- 📖 [مخطط قاعدة البيانات](db/schema.sql)
+- 📖 [هيكل المنهج](curriculum/math-3sec/README.md)
+
+---
+
+## 🤝 المساهمة
+
+المشروع تطوعي ومفتوح للمساهمة. للمساهمة:
+1. Fork المستودع
+2. أنشئ فرعاً جديداً (`git checkout -b feature/amazing-feature`)
+3. Commit التعديلات (`git commit -m 'Add amazing feature'`)
+4. Push إلى الفرع (`git push origin feature/amazing-feature`)
+5. افتح Pull Request
+
+---
+
+## 📜 الرخصة
+
+MIT License - انظر ملف [LICENSE](LICENSE) للتفاصيل.
+
+---
+
+## 👤 المؤسس
+
+**الأستاذ أحمد المغز** - مبادرة تطوعية لخدمة الطلاب اليمنيين
+
+---
+
+## 🙏 شكر وتقدير
+
+- وزارة التربية والتعليم اليمنية (للمصدر الرسمي للمناهج)
+- OpenAI (لتوفير نماذج LLM)
+- Telegram (لتوفير منصة بوت مجانية)
+- مجتمع FastAPI و Python

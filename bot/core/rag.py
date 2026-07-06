@@ -25,7 +25,7 @@ class RetrievedLesson(BaseModel):
 class RAGPipeline:
     def __init__(self):
         self.qdrant_client = QdrantClient(
-            host=os.getenv("QDRANT_HOST", "localhost"),
+            host=os.getenv("QDRANT_HOST", "qdrant"),
             port=int(os.getenv("QDRANT_PORT", 6333))
         )
         self.openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))

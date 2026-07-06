@@ -51,12 +51,24 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # --- تحميل System Prompt ---
+SYSTEM_PROMPT = None
 try:
     with open(settings.SYSTEM_PROMPT_PATH, 'r', encoding='utf-8') as f:
         SYSTEM_PROMPT = f.read()
+    logger.info(f"System prompt loaded successfully from {settings.SYSTEM_PROMPT_PATH}")
+except FileNotFoundError:
+    logger.warning(f"System prompt file not found at {settings.SYSTEM_PROMPT_PATH}, using default")
+    SYSTEM_PROMPT = (
+        "أنت معلم رياضيات ذكي اسمه مستر AI. ساعد الطلاب بأسلوب ودود ومهني.\n"
+        "استخدم أسلوب سقراطي: اسأل قبل أن تجيب. "
+        "أعطِ أمثلة من الحياة الواقعية. "
+        "شجّع الطالب دائماً."
+    )
 except Exception as e:
     logger.error(f"Failed to load system prompt: {e}")
-    SYSTEM_PROMPT = "أنت معلم رياضيات ذكي اسمه مستر AI. ساعد الطلاب بأسلوب ودود ومهني."
+    SYSTEM_PROMPT = (
+        "أنت معلم رياضيات ذكي اسمه مستر AI. ساعد الطلاب بأسلوب ودود ومهني."
+    )
 
 # --- FastAPI App ---
 app = FastAPI(title="Mister AI Telegram Bot")
