@@ -117,7 +117,7 @@ class Settings(BaseSettings):
     
     # ===== System Prompt =====
     system_prompt_path: str = Field(
-        default="/app/prompts/system_prompt.md",
+        default="/prompts/system_prompt.md",
         description="مسار ملف System Prompt"
     )
     
