@@ -32,7 +32,7 @@ SUPPORTED_MODELS = {
 SUPPORTED_EMBEDDING_MODELS = {
     "gemini": [
         "models/embedding-001",
-        "models/embedding-002",
+        "models/embedding-2",
     ],
     "openai": [
         "text-embedding-3-small",
@@ -137,7 +137,7 @@ class Settings(BaseSettings):
         if self.llm_provider == "gemini":
             self.active_model = self.gemini_model
             if self.gemini_embedding_model in {"models/embedding-001"}:
-                self.gemini_embedding_model = "models/embedding-002"
+                self.gemini_embedding_model = "models/embedding-2"
             self.active_embedding_model = self.gemini_embedding_model
             
             if not self.google_api_key:
