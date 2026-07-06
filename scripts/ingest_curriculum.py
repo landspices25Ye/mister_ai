@@ -197,6 +197,7 @@ class CurriculumIngester:
                 collection_name=self.collection_name,
                 url=f"http://{self.settings.qdrant_host}:{self.settings.qdrant_port}",
                 prefer_grpc=False,
+                force_recreate=True,
             )
             
             logger.info(
