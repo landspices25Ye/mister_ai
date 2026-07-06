@@ -71,7 +71,7 @@ class Settings(BaseSettings):
         description="نموذج Gemini المستخدم"
     )
     gemini_embedding_model: str = Field(
-        default="gemini-embedding-002",
+        default="gemini-embedding-2",
         description="نموذج Gemini Embeddings"
     )
     
@@ -117,7 +117,7 @@ class Settings(BaseSettings):
     
     # ===== System Prompt =====
     system_prompt_path: str = Field(
-        default="/prompts/system_prompt.md",
+        default="/app/prompts/system_prompt.md",
         description="مسار ملف System Prompt"
     )
     
