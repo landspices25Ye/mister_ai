@@ -21,7 +21,17 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy import select, update, insert
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import String, Integer, DateTime, Boolean, Text, JSON, ForeignKey, Float
+from sqlalchemy import (
+    String,
+    Integer,
+    DateTime,
+    Boolean,
+    Text,
+    JSON,
+    ForeignKey,
+    Float,
+    BigInteger,
+)
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID, JSONB, ARRAY
 
 from bot.core.config import get_settings
@@ -159,9 +169,6 @@ class StudentProgress(Base):
 
 
 # ===== إدارة قاعدة البيانات =====
-
-# استيراد BigInteger من مكانه الصحيح
-from sqlalchemy import BigInteger
 
 
 class DatabaseManager:

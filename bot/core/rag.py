@@ -11,6 +11,7 @@ Pipeline متكامل لاسترجاع الدروس ذات الصلة وتولي
 """
 
 import logging
+import time
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 
@@ -65,6 +66,7 @@ class RAGPipeline:
             self._qdrant_client = QdrantClient(
                 host=self.settings.qdrant_host,
                 port=self.settings.qdrant_port,
+                check_compatibility=False,
             )
             logger.info(
                 f"Connected to Qdrant: {self.settings.qdrant_host}:{self.settings.qdrant_port}"
@@ -103,33 +105,53 @@ class RAGPipeline:
             )
         return self._retriever
     
-    def ensure_collection_exists(self) -> None:
+    def ensure_collection_exists(self, max_retries: int = 6, retry_delay: int = 3) -> None:
         """
         التأكد من وجود المجموعة في Qdrant
-        وإنشائها إذا لم تكن موجودة
+        وإنشائها إذا لم تكن موجودة مع إعادة المحاولة عندStartup.
         """
-        try:
-            collections = self.qdrant_client.get_collections().collections
-            collection_names = [c.name for c in collections]
-            
-            if self.settings.qdrant_collection not in collection_names:
-                logger.info(
-                    f"Collection '{self.settings.qdrant_collection}' not found, creating..."
-                )
-                # تحديد بُعد الـ embeddings
-                embedding_dim = 768 if self.settings.llm_provider == "gemini" else 1536
-                
-                self.qdrant_client.create_collection(
-                    collection_name=self.settings.qdrant_collection,
-                    vectors_config=qdrant_models.VectorParams(
-                        size=embedding_dim,
-                        distance=qdrant_models.Distance.COSINE,
-                    ),
-                )
-                logger.info(f"Collection '{self.settings.qdrant_collection}' created")
-        except Exception as e:
-            logger.error(f"Failed to ensure collection exists: {e}", exc_info=True)
-            raise
+        last_error: Optional[Exception] = None
+
+        for attempt in range(1, max_retries + 1):
+            try:
+                collections = self.qdrant_client.get_collections().collections
+                collection_names = [c.name for c in collections]
+
+                if self.settings.qdrant_collection not in collection_names:
+                    logger.info(
+                        f"Collection '{self.settings.qdrant_collection}' not found, creating..."
+                    )
+                    # تحديد بُعد الـ embeddings
+                    embedding_dim = 768 if self.settings.llm_provider == "gemini" else 1536
+
+                    self.qdrant_client.create_collection(
+                        collection_name=self.settings.qdrant_collection,
+                        vectors_config=qdrant_models.VectorParams(
+                            size=embedding_dim,
+                            distance=qdrant_models.Distance.COSINE,
+                        ),
+                        timeout=60,
+                    )
+                    logger.info(f"Collection '{self.settings.qdrant_collection}' created")
+
+                return
+            except Exception as e:
+                last_error = e
+                if attempt < max_retries:
+                    logger.warning(
+                        f"Qdrant collection initialization attempt {attempt}/{max_retries} failed: {e}. Retrying in {retry_delay}s..."
+                    )
+                    time.sleep(retry_delay)
+                else:
+                    logger.warning(
+                        f"Qdrant collection initialization failed after {max_retries} attempts: {e}. Continuing startup without pre-created collection."
+                    )
+                    return
+
+        if last_error is not None:
+            logger.warning(
+                f"Collection initialization ended with warning: {last_error}. Continuing startup."
+            )
     
     def format_docs(self, docs: List[Document]) -> str:
         """تنسيق المستندات المسترجعة للنظام"""

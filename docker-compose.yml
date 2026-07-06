@@ -1,7 +1,7 @@
 # Mister AI - Docker Compose (v2.1)
 # Python 3.12 + LangChain v1.3+ + Gemini 3.1 Flash Lite
-
-version: '3.8'
+# 
+# version: '3.8'
 
 services:
   # --- التطبيق الرئيسي ---
@@ -106,7 +106,7 @@ services:
 
   # --- قاعدة البيانات المتجهية (Qdrant) --- qdrant/qdrant:v1.18.2
   qdrant:
-    image: qdrant/qdrant:v1.12.0
+    image: qdrant/qdrant:v1.18.2
     container_name: mister_ai_qdrant
     restart: unless-stopped
     ports:
@@ -114,6 +114,12 @@ services:
       - "6334:6334"
     volumes:
       - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/collections"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     networks:
       - mister_ai_network
 
