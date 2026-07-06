@@ -58,6 +58,8 @@ class CurriculumIngester:
         self.qdrant_client = QdrantClient(
             host=self.settings.qdrant_host,
             port=self.settings.qdrant_port,
+            timeout=120,
+            check_compatibility=False,
         )
         self.collection_name = self.settings.qdrant_collection
         
