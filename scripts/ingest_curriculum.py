@@ -4,7 +4,7 @@
 """
 سكريبت لفهرسة المنهج في Qdrant باستخدام LangChain الحديث
 يدعم:
-- Google Gemini (models/text-embedding-004)
+- Google Gemini (gemini-embedding-2)
 - OpenAI (text-embedding-3-small)
 - MarkdownTextSplitter
 - QdrantVectorStore
@@ -54,7 +54,7 @@ class CurriculumIngester:
         self.settings = get_settings()
         self.llm_client = LLMClient()
         
-        # Qdrant client
+        # Qdrant client مع timeout عالي
         self.qdrant_client = QdrantClient(
             host=self.settings.qdrant_host,
             port=self.settings.qdrant_port,
@@ -74,33 +74,6 @@ class CurriculumIngester:
         logger.info(f"🚀 Using LLM Provider: {self.settings.llm_provider}")
         logger.info(f"🤖 Active Model: {self.settings.active_model}")
         logger.info(f"📊 Active Embedding Model: {self.settings.active_embedding_model}")
-    
-    def ensure_collection_exists(self) -> None:
-        """التأكد من وجود المجموعة في Qdrant"""
-        try:
-            collections = self.qdrant_client.get_collections().collections
-            collection_names = [c.name for c in collections]
-            
-            if self.collection_name not in collection_names:
-                logger.info(
-                    f"Creating collection '{self.collection_name}'..."
-                )
-                # تحديد بُعد الـ embeddings
-                embedding_dim = 768 if self.settings.llm_provider == "gemini" else 1536
-                
-                self.qdrant_client.create_collection(
-                    collection_name=self.collection_name,
-                    vectors_config=qdrant_models.VectorParams(
-                        size=embedding_dim,
-                        distance=qdrant_models.Distance.COSINE,
-                    ),
-                )
-                logger.info(f"Collection '{self.collection_name}' created")
-            else:
-                logger.info(f"Collection '{self.collection_name}' already exists")
-        except Exception as e:
-            logger.error(f"Failed to ensure collection exists: {e}", exc_info=True)
-            raise
     
     def process_markdown_file(self, file_path: Path) -> List[Document]:
         """
@@ -147,18 +120,46 @@ class CurriculumIngester:
         markdown_files = sorted(curriculum_dir.glob("**/*.md"))
         return markdown_files
     
-    async def ingest_curriculum(
+    def ingest_curriculum(
         self,
         curriculum_path: str = "curriculum",
     ) -> None:
         """
-        فهرسة جميع ملفات المنهج في Qdrant
+        فهرسة جميع ملفات المنهج في Qdrant (متزامن)
         
         Args:
             curriculum_path: مسار مجلد المنهج
         """
-        # 1. التأكد من وجود المجموعة
-        self.ensure_collection_exists()
+        # 1. حذف المجموعة إذا كانت موجودة، ثم إنشاء مجموعة جديدة
+        logger.info(f"Preparing collection '{self.collection_name}'...")
+        try:
+            collections = self.qdrant_client.get_collections().collections
+            collection_names = [c.name for c in collections]
+            
+            if self.collection_name in collection_names:
+                logger.info(f"Deleting existing collection '{self.collection_name}'...")
+                self.qdrant_client.delete_collection(
+                    collection_name=self.collection_name,
+                    timeout=120,
+                )
+                logger.info(f"Deleted collection '{self.collection_name}'")
+            
+            # تحديد بُعد الـ embeddings
+            embedding_dim = 3072 if self.settings.llm_provider == "gemini" else 1536
+            
+            logger.info(f"Creating collection '{self.collection_name}' with {embedding_dim}-dim vectors...")
+            self.qdrant_client.create_collection(
+                collection_name=self.collection_name,
+                vectors_config=qdrant_models.VectorParams(
+                    size=embedding_dim,
+                    distance=qdrant_models.Distance.COSINE,
+                ),
+                timeout=120,
+            )
+            logger.info(f"Created collection '{self.collection_name}'")
+        except Exception as e:
+            logger.error(f"Failed to prepare collection: {e}", exc_info=True)
+            raise
         
         # 2. البحث عن ملفات Markdown
         markdown_files = self.find_markdown_files(curriculum_path)
@@ -186,18 +187,20 @@ class CurriculumIngester:
         
         logger.info(f"Total chunks: {len(all_documents)}")
         
-        # 4. فهرسة في Qdrant باستخدام QdrantVectorStore
+        # 4. فهرسة في Qdrant باستخدام QdrantVectorStore (متزامن)
         try:
             logger.info("Creating embeddings and ingesting into Qdrant...")
             
-            # استخدام from_documents يقوم بالإنشاء والإضافة تلقائياً
-            vector_store = await QdrantVectorStore.afrom_documents(
+            # استخدام from_documents المتزامن مع batch_size صغير
+            # force_recreate=False لأننا أنشأنا المجموعة يدوياً
+            vector_store = QdrantVectorStore.from_documents(
                 documents=all_documents,
                 embedding=self.llm_client.embeddings,
                 collection_name=self.collection_name,
-                url=f"http://{self.settings.qdrant_host}:{self.settings.qdrant_port}",
+                client=self.qdrant_client,
                 prefer_grpc=False,
-                force_recreate=True,
+                force_recreate=False,
+                batch_size=16,
             )
             
             logger.info(
@@ -210,7 +213,7 @@ class CurriculumIngester:
             raise
 
 
-async def main():
+def main():
     """الدالة الرئيسية"""
     logger.info("=" * 60)
     logger.info("Mister AI - Curriculum Ingestion")
@@ -218,7 +221,7 @@ async def main():
     
     try:
         ingester = CurriculumIngester()
-        await ingester.ingest_curriculum("curriculum")
+        ingester.ingest_curriculum("curriculum")
         logger.info("=" * 60)
         logger.info("Ingestion completed successfully!")
         logger.info("=" * 60)
@@ -228,4 +231,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
