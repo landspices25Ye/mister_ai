@@ -1,39 +1,56 @@
-# 🤖 Mister AI - المعلم الذكي
+# 🤖 Mister AI - المعلم الذكي v2.1
 
 > مساعد تعليمي افتراضي بالذكاء الاصطناعي لطلاب الثانوية في اليمن
-> مبني على **FastAPI + Telegram Bot + RAG + OpenAI**
+> مبني على **FastAPI + Telegram Bot + LangChain v1.3+ + Gemini 3.1 Flash Lite + RAG**
 
-[![Python 3.12](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.110.0-green.svg)](https://fastapi.tiangolo.com/)
+[![Python 3.12+](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://www.python.org/)
+[![LangChain 1.3+](https://img.shields.io/badge/LangChain-1.3+-green.svg)](https://python.langchain.com/)
+[![Gemini 3.1 Flash Lite](https://img.shields.io/badge/Gemini-3.1--Flash--Lite-4285F4.svg)](https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg)](https://fastapi.tiangolo.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
-## 📋 نظرة عامة
+## ✨ ما الجديد في v2.1؟
 
-**مستر AI** هو بوت تعليمي ذكي يعمل على **Telegram** (وقريباً WhatsApp)، يقدم:
-- 🎓 دروساً في الرياضيات (الصف الثالث الثانوي - علمي)
-- 🤖 شروحات بأسلوب سقراطي (يوجّه الطالب للتفكير بدل الإجابة المباشرة)
-- 📝 تدريبات واختبارات تفاعلية
-- 📊 تتبّع تقدّم الطالب
-- 🔍 بحث ذكي في المنهج (RAG)
+| الميزة | قبل | بعد |
+|--------|------|------|
+| **LLM Provider** | OpenAI فقط | **Google Gemini + OpenAI** |
+| **النموذج الافتراضي** | gpt-4o-mini | **gemini-3.1-flash-lite** |
+| **Embeddings** | OpenAI فقط | **Gemini + OpenAI** |
+| **Multi-Provider** | لا | **نعم (LLM_PROVIDER)** |
+| **LangChain** | 1.0 | **1.3+** |
+| **التكلفة** | مرتفعة | **منخفضة (Gemini Flash Lite)** |
+| **السرعة** | جيدة | **عالية جداً (Flash Lite)** |
+
+---
+
+## 🎯 لماذا Gemini 3.1 Flash Lite؟
+
+✅ **أسرع نموذج من Google** - مُحسّن للأداء العالي والكفاءة
+✅ **أقل تكلفة** - مناسب للتطبيقات عالية التردد
+✅ **دعم متعدد الوسائط** - نص، صورة، فيديو، صوت، PDF
+✅ **أداء متقدم** - ينافس النماذج الأكبر بأداء قريب
+✅ **مُحسّن للـ Agents** - مثالي للتطبيقات التعليمية التفاعلية
+✅ **مجاناً للاستخدام الشخصي** - عبر Google AI Studio
 
 ---
 
 ## 🏗️ البنية المعمارية
 
 ```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  Telegram   │────▶│   FastAPI   │────▶│    OpenAI   │
-│    Bot      │     │     App     │     │     LLM     │
-└─────────────┘     └──────┬──────┘     └─────────────┘
-                           │
-                  ┌────────┴────────┐
-                  │                 │
-            ┌─────▼─────┐    ┌──────▼──────┐
-            │ PostgreSQL │    │   Qdrant    │
-            │ (Metadata) │    │ (Vectors)   │
-            └───────────┘    └─────────────┘
+┌─────────────┐     ┌─────────────┐     ┌─────────────────┐
+│  Telegram   │────▶│   FastAPI   │────▶│  LangChain v1.3 │
+│    Bot      │     │     App     │     │   (LCEL Chains) │
+└─────────────┘     └──────┬──────┘     └────────┬────────┘
+                           │                     │
+                  ┌────────┴────────┐     ┌──────┴──────┐
+                  │                 │     │             │
+            ┌─────▼─────┐    ┌──────▼──────┐  ┌───────▼────────┐
+            │ PostgreSQL │    │   Qdrant    │  │ Google Gemini │
+            │ + SQLAlchemy│   │ VectorStore │  │ 3.1 Flash Lite│
+            │  2.0 async  │    │ (langchain) │  │  (langchain)  │
+            └───────────┘    └─────────────┘  └────────────────┘
                   │
             ┌─────▼─────┐
             │   Redis   │
@@ -43,87 +60,77 @@
 
 ---
 
-## 📂 هيكل المشروع
+## 📋 المتطلبات
 
-```
-mister_ai/
-├── bot/
-│   ├── main.py              # نقطة الدخول الرئيسية
-│   └── core/
-│       ├── llm_client.py    # عميل LLM (OpenAI)
-│       ├── rag.py           # Pipeline لاسترجاع الدروس
-│       └── student_manager.py # إدارة بيانات الطلاب
-├── curriculum/
-│   └── math-3sec/
-│       ├── ch01_derivatives/    # الفصل الأول (مكتمل)
-│       ├── ch02_applications/   # هيكل
-│       ├── ch03_integration/    # هيكل
-│       └── shared/questions_bank/
-├── prompts/
-│   └── system_prompt.md     # دليل المعلم (System Prompt)
-├── db/
-│   └── schema.sql           # مخطط قاعدة البيانات
-├── data/                    # ملفات مؤقتة
-├── scripts/                 # سكربتات مساعدة
-├── simulations/             # محاكاة المحادثات
-├── .env.example             # قالب متغيرات البيئة
-├── docker-compose.yml       # إعداد الحاويات
-├── Dockerfile               # بناء الصورة
-└── requirements.txt         # المكتبات المطلوبة
-```
+### 1. مفاتيح API المطلوبة
+- **Google Gemini API Key** (مجاناً من [Google AI Studio](https://aistudio.google.com/app/apikey))
+- **Telegram Bot Token** (من [@BotFather](https://t.me/BotFather))
+
+### 2. المتطلبات التقنية
+- **Docker** >= 24.0
+- **Docker Compose** >= 2.20
+- **Python 3.12+** (للتطوير المحلي)
 
 ---
 
 ## 🚀 البدء السريع
 
-### 1. المتطلبات
-- **Docker** >= 24.0
-- **Docker Compose** >= 2.20
-- **مفتاح OpenAI API** ([احصل عليه من هنا](https://platform.openai.com/api-keys))
-- **توكن Telegram Bot** ([أنشئ بوت من @BotFather](https://t.me/BotFather))
-
-### 2. الإعداد
+### 1. الإعداد
 ```bash
-# استنساخ المستودع
 git clone https://github.com/landspices25Ye/mister_ai.git
 cd mister_ai
-
-# إنشاء ملف .env
 cp .env.example .env
-nano .env  # أضف المفاتيح الفعلية
+nano .env  # أضف GOOGLE_API_KEY و TELEGRAM_BOT_TOKEN
 ```
 
-### 3. التشغيل
+### 2. تشغيل البنية التحتية
 ```bash
-# بناء وتشغيل الحاويات
-docker-compose up -d --build
+# تشغيل PostgreSQL + Redis + Qdrant فقط
+docker-compose up -d postgres redis qdrant
 
-# عرض السجلات
-docker-compose logs -f app
-
-# فحص حالة الحاويات
+# انتظر حتى تكون الخدمات جاهزة
 docker-compose ps
 ```
 
-### 4. التحقق
-- افتح `http://localhost:8000` للتحقق من أن FastAPI يعمل
-- افتح Telegram وتحدث مع البوت الخاص بك
+### 3. فهرسة المنهج في Qdrant
+```bash
+# تشغيل السكربت داخل الحاوية
+docker-compose run --rm app python -m scripts.ingest_curriculum
+```
+
+### 4. تشغيل التطبيق
+```bash
+# تشغيل الحاوية الرئيسية
+docker-compose up -d app
+
+# عرض السجلات
+docker-compose logs -f app
+```
+
+### 5. التحقق
+- افتح `http://localhost:8000` للتحقق من FastAPI
+- افتح `http://localhost:8000/health` لفحص الحالة
+- افتح `http://localhost:8080` لـ Adminer (إدارة قاعدة البيانات)
+- تحدث مع البوت على Telegram
 
 ---
 
 ## 🔧 متغيرات البيئة
 
-| المتغير | الوصف | القيمة الافتراضية |
-|---------|-------|-------------------|
-| `TELEGRAM_BOT_TOKEN` | توكن بوت Telegram | _(مطلوب)_ |
-| `OPENAI_API_KEY` | مفتاح OpenAI API | _(مطلوب)_ |
-| `OPENAI_MODEL` | نموذج LLM المستخدم | `gpt-4o-mini` |
-| `POSTGRES_USER` | اسم مستخدم PostgreSQL | `mister_ai_user` |
-| `POSTGRES_PASSWORD` | كلمة مرور PostgreSQL | _(مطلوب)_ |
-| `POSTGRES_DB` | اسم قاعدة البيانات | `mister_ai` |
-| `QDRANT_HOST` | اسم مضيف Qdrant | `qdrant` |
-| `REDIS_HOST` | اسم مضيف Redis | `redis` |
-| `SYSTEM_PROMPT_PATH` | مسار ملف System Prompt | `/app/prompts/system_prompt.md` |
+راجع ملف `.env.example` للحصول على القائمة الكاملة.
+
+**المتغيرات الأساسية:**
+```env
+# اختر المزود: "gemini" أو "openai"
+LLM_PROVIDER=gemini
+
+# Google Gemini
+GOOGLE_API_KEY=***
+GEMINI_MODEL=gemini-3.1-flash-lite
+
+# Telegram
+TELEGRAM_BOT_TOKEN=***
+```
 
 ---
 
@@ -132,31 +139,71 @@ docker-compose ps
 | الخدمة | المنفذ | الوصف |
 |--------|--------|-------|
 | `app` | 8000 | التطبيق الرئيسي (FastAPI + Telegram) |
-| `postgres` | 5432 | قاعدة البيانات الرئيسية |
-| `qdrant` | 6333 | قاعدة البيانات المتجهية (RAG) |
-| `redis` | 6379 | التخزين المؤقت |
-| `adminer` | 8080 | واجهة إدارة قاعدة البيانات |
+| `postgres` | 5432 | قاعدة البيانات |
+| `qdrant` | 6333 | Vector DB |
+| `redis` | 6379 | Cache |
+| `adminer` | 8080 | إدارة قاعدة البيانات |
 
 ---
 
-## 🛠️ استكشاف الأخطاء وإصلاحها
+## 🛠️ استكشاف الأخطاء
 
-### الحاوية `app` تشتغل وتغلق فوراً
-**السبب الشائع:** متغيرات البيئة غير معرّفة.
-
-**الحل:**
-1. تأكد من وجود ملف `.env` ومن صحة القيم
-2. تحقق من السجلات: `docker-compose logs app`
-3. تأكد من أن جميع المجلدات المطلوبة موجودة (مثل `prompts/`, `curriculum/`)
-
-### خطأ في الاتصال بـ Qdrant
-**الحل:** تأكد من أن خدمة `qdrant` تعمل:
+### خطأ في استيراد langchain-google-genai
 ```bash
-docker-compose ps qdrant
+# تأكد من تثبيت الحزمة
+pip install langchain-google-genai>=4.2.0
+
+# أو داخل Docker
+docker-compose build --no-cache app
 ```
 
-### خطأ في الاتصال بـ PostgreSQL
-**الحل:** تحقق من أن خدمة `postgres` بدأت بنجاح ومن أن بيانات الاعتماد صحيحة.
+### خطأ في الاتصال بـ Gemini
+```bash
+# تأكد من صحة GOOGLE_API_KEY
+# احصل على مفتاح جديد من: https://aistudio.google.com/app/apikey
+```
+
+### خطأ في Qdrant
+```bash
+docker-compose ps qdrant
+docker-compose logs qdrant
+```
+
+---
+
+## 🔄 التبديل بين Gemini و OpenAI
+
+لتغيير المزود، عدل ملف `.env`:
+
+```env
+# للاستخدام مع Google Gemini
+LLM_PROVIDER=gemini
+GOOGLE_API_KEY=your_google_api_key
+
+# للاستخدام مع OpenAI
+LLM_PROVIDER=openai
+OPENAI_API_KEY=your_openai_api_key
+```
+
+ثم أعد تشغيل الحاوية:
+```bash
+docker-compose restart app
+```
+
+---
+
+## 📈 مقارنة بين Gemini و OpenAI
+
+| الميزة | Gemini 3.1 Flash Lite | OpenAI gpt-4o-mini |
+|--------|-----------------------|--------------------|
+| **السعر** | مجاناً للاستخدام الشخصي | مدفوع |
+| **السرعة** | عالية جداً | جيدة |
+| **جودة الردود** | ممتازة | ممتازة |
+| **دعم الوسائط** | نص + صورة + فيديو + صوت + PDF | نص فقط |
+| **السياق** | 1 مليون توكن | 128 ألف توكن |
+| **الاستجابة** | أقل من 300 مللي ثانية | 500-1000 مللي ثانية |
+| **التوفر** | متاح عالمياً | متاح عالمياً |
+| **التكلفة** | منخفضة جداً | منخفضة |
 
 ---
 
@@ -165,23 +212,20 @@ docker-compose ps qdrant
 - 📖 [دليل المعلم (System Prompt)](prompts/system_prompt.md)
 - 📖 [مخطط قاعدة البيانات](db/schema.sql)
 - 📖 [هيكل المنهج](curriculum/math-3sec/README.md)
+- 📖 [Google Gemini API Docs](https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite)
+- 📖 [LangChain Google GenAI](https://python.langchain.com/docs/integrations/chat/google_generative_ai)
 
 ---
 
 ## 🤝 المساهمة
 
-المشروع تطوعي ومفتوح للمساهمة. للمساهمة:
-1. Fork المستودع
-2. أنشئ فرعاً جديداً (`git checkout -b feature/amazing-feature`)
-3. Commit التعديلات (`git commit -m 'Add amazing feature'`)
-4. Push إلى الفرع (`git push origin feature/amazing-feature`)
-5. افتح Pull Request
+المشروع تطوعي ومفتوح للمساهمة.
 
 ---
 
 ## 📜 الرخصة
 
-MIT License - انظر ملف [LICENSE](LICENSE) للتفاصيل.
+MIT License
 
 ---
 
@@ -193,7 +237,7 @@ MIT License - انظر ملف [LICENSE](LICENSE) للتفاصيل.
 
 ## 🙏 شكر وتقدير
 
+- Google DeepMind (لنموذج Gemini 3.1 Flash Lite)
+- Google AI Studio (للـ API المجاني)
 - وزارة التربية والتعليم اليمنية (للمصدر الرسمي للمناهج)
-- OpenAI (لتوفير نماذج LLM)
-- Telegram (لتوفير منصة بوت مجانية)
-- مجتمع FastAPI و Python
+- مجتمع LangChain و Python

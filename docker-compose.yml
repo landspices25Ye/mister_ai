@@ -1,7 +1,7 @@
-# Mister AI - Docker Compose
-# docker-compose.yml
+# Mister AI - Docker Compose (v2.1)
+# Python 3.12 + LangChain v1.3+ + Gemini 3.1 Flash Lite
 
-# version: '3.8'
+version: '3.8'
 
 services:
   # --- التطبيق الرئيسي ---
@@ -12,28 +12,75 @@ services:
     ports:
       - "8000:8000"
     environment:
+      # LLM Provider
+      - LLM_PROVIDER=${LLM_PROVIDER:-gemini}
+      
+      # Telegram
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      
+      # Google Gemini
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-3.1-flash-lite}
+      - GEMINI_EMBEDDING_MODEL=${GEMINI_EMBEDDING_MODEL:-models/text-embedding-004}
+      
+      # OpenAI
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - OPENAI_MODEL=gpt-4o-mini
-      - SYSTEM_PROMPT_PATH=/app/prompts/system_prompt.md
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+      - OPENAI_EMBEDDING_MODEL=${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      
+      # PostgreSQL
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
-      - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-mister_ai}
+      
+      # Redis
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      
+      # Qdrant
       - QDRANT_HOST=qdrant
       - QDRANT_PORT=6333
+      - QDRANT_COLLECTION=${QDRANT_COLLECTION:-mister_ai_curriculum}
+      
+      # RAG
+      - RAG_TOP_K=${RAG_TOP_K:-4}
+      - RAG_SCORE_THRESHOLD=${RAG_SCORE_THRESHOLD:-0.7}
+      - RAG_CHUNK_SIZE=${RAG_CHUNK_SIZE:-1000}
+      - RAG_CHUNK_OVERLAP=${RAG_CHUNK_OVERLAP:-200}
+      
+      # LLM
+      - LLM_TEMPERATURE=${LLM_TEMPERATURE:-0.7}
+      - LLM_MAX_TOKENS=${LLM_MAX_TOKENS:-1000}
+      - LLM_TIMEOUT=${LLM_TIMEOUT:-30}
+      
+      # System Prompt
+      - SYSTEM_PROMPT_PATH=/app/prompts/system_prompt.md
+      
+      # App
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
     volumes:
       - ./curriculum:/app/curriculum
       - ./prompts:/app/prompts
       - ./data:/app/data
+      - ./logs:/app/logs
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
     networks:
       - mister_ai_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   # --- قاعدة البيانات ---
   postgres:
@@ -43,7 +90,7 @@ services:
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=mister_ai
+      - POSTGRES_DB=${POSTGRES_DB:-mister_ai}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
@@ -51,10 +98,15 @@ services:
       - "5432:5432"
     networks:
       - mister_ai_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB:-mister_ai}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # --- قاعدة البيانات المتجهية (Qdrant) ---
   qdrant:
-    image: qdrant/qdrant:v1.8.0
+    image: qdrant/qdrant:v1.12.0
     container_name: mister_ai_qdrant
     restart: unless-stopped
     ports:
@@ -76,10 +128,15 @@ services:
       - redis_data:/data
     networks:
       - mister_ai_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # --- لوحة التحكم (اختياري) ---
   adminer:
-    image: adminer
+    image: adminer:latest
     container_name: mister_ai_adminer
     restart: unless-stopped
     ports:
