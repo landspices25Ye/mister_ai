@@ -1,7 +1,7 @@
 # Mister AI - Dockerfile (v2.0)
 # Python 3.12 + LangChain v1.0+ + psycopg3
 
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 # متغيرات بيئة
 ENV PYTHONUNBUFFERED=1 \

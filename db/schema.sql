@@ -8,7 +8,7 @@
 -- تفعيل الإضافات المطلوبة
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";      -- UUID generation
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";        -- للبحث النصي السريع
-CREATE EXTENSION IF NOT EXISTS "vector";         -- للـ embeddings (pgvector)
+-- CREATE EXTENSION IF NOT EXISTS "vector";         -- للـ embeddings (pgvector)
 -- ملاحظة: إذا لم تستخدم pgvector، احذف السطر أعلاه واستخدم Qdrant منفصل
 
 -- =================================================================
@@ -171,18 +171,18 @@ CREATE INDEX idx_quiz_lesson ON quiz_attempts(lesson_id);
 -- 8. Vector Embeddings (إذا استخدمت pgvector بدل Qdrant)
 -- =================================================================
 -- إذا كنت تستخدم Qdrant منفصل، احذف هذا القسم بالكامل
-CREATE TABLE IF NOT EXISTS lesson_chunks (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    lesson_id VARCHAR(50) NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
-    chunk_index INT NOT NULL,
-    chunk_text TEXT NOT NULL,
-    embedding vector(1536),  -- بُعد OpenAI embeddings
-    metadata JSONB DEFAULT '{}'::jsonb,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
+-- CREATE TABLE IF NOT EXISTS lesson_chunks (
+--     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+--     lesson_id VARCHAR(50) NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
+--     chunk_index INT NOT NULL,
+--     chunk_text TEXT NOT NULL,
+--     embedding vector(1536),  -- بُعد OpenAI embeddings
+--     metadata JSONB DEFAULT '{}'::jsonb,
+--     created_at TIMESTAMPTZ DEFAULT NOW()
+-- );
 
-CREATE INDEX idx_chunks_lesson ON lesson_chunks(lesson_id);
-CREATE INDEX idx_chunks_embedding ON lesson_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+-- CREATE INDEX idx_chunks_lesson ON lesson_chunks(lesson_id);
+-- CREATE INDEX idx_chunks_embedding ON lesson_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
 
 -- =================================================================
 -- 9. سجل العمليات (Audit Log)
